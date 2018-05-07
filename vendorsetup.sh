@@ -1,12 +1,11 @@
-if grep -q "PLATFORM_VERSION := 6.0.1" build/core/version_defaults.mk
-  then
-  cd external/svox
-  if [ -e "bug_69177126" ]; then
-    echo 'external/svox patched already';
-  else
-    git am ../../vendor/extra/patch/external/svox/0001-SVOX-Properly-initialize-buffers.patch || git am --abort
-  fi
-else
-  echo 'This is not Android 6, patching external/svox not possible';
-fi
-croot
+while read -r file; do
+    project="$(dirname ${file} | sed 's|vendor/extra/patch/||g')"
+    bugid="$(grep '^Bug: ' ${file} | sed -E 's|^\s*Bug: ([0-9]+).*$|\1|g')"
+    if [ "$(git -C ${project} log --grep "Bug: ${bugid}")" ]; then
+        echo "${project}: b/${bugid} is already patched"
+        continue
+    fi
+    git -C "${project}" am -q "$(pwd)/${file}" || git -C "${project}" am --abort
+done <<< "$(find vendor/extra/patch -type f)"
+unset project
+unset bugid
